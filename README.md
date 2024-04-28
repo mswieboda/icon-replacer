@@ -1,27 +1,44 @@
 # icon-replacer
 
-TODO: Write a description here
+macOS command line app to replace Application icons with custom icons
 
 ## Installation
 
-TODO: Write installation instructions here
+`make test` or `make release`
+
+builds a command line app in a created `build` dir
 
 ## Usage
 
-TODO: Write usage instructions here
+````
+❯ ./build/icon-replacer -h
+Icon Replacer (0.1.0)
+Replaces macOS system icons with user specified ones
+Usage: icon-replacer [args]
+    -s FILE, --settings=FILE         Specifies settings file to load
+    -v, --version                    Show version
+    -h, --help                       Show help
+````
 
-## Development
 
-TODO: Write development instructions here
+## Example prompts
 
-## Contributing
+Note: the native macOS file chooser, and file name chooser are used for choosing files and saving the settings file.
 
-1. Fork it (<https://github.com/your-github-user/icon-replacer/fork>)
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create a new Pull Request
-
-## Contributors
-
-- [Matt Swieboda](https://github.com/your-github-user) - creator and maintainer
+````
+./build/icon-replacer
+Load settings from a file?
+type Y to load, anything else means N
+n
+Which app file icon do you want to replace?
+/Applications/Brave Browser.app/
+Which icon do you want to use?
+/Users/matt/Pictures/icons/chrome-dark.png
+add another?
+type Y to continue, anything else means N
+n
+save replacement settings?
+type Y to continue, anything else means N
+n
+/Applications/Brave Browser.app/ icon replaced
+````
