@@ -1,30 +1,50 @@
+require "json"
 require "option_parser"
 
-module Icon::Replacer
-  alias Replacement = NamedTuple(app: String, icon: String)
+alias Replacement = NamedTuple(app: String, icon: String)
 
-  VERSION = "0.1.0"
-  TITLE = "Icon Replacer"
+VERSION = "0.1.0"
+TITLE = "Icon Replacer"
 
-  banner = "#{TITLE} (#{VERSION})"
-  @@replacements = [] of Replacement
+HOME_DIR = `echo $HOME`.chomp
 
-  OptionParser.parse do |parser|
-    parser.banner = "#{banner}\n\
-    Replaces macOS system icons with user specified ones\n\
-    Usage: icon-replacer [args]"
+settings_file = ""
 
-    parser.on "-v", "--version", "Show version" do
-      puts VERSION
-      exit
-    end
-    parser.on "-h", "--help", "Show help" do
-      puts parser
-      exit
-    end
+OptionParser.parse do |parser|
+  parser.banner = "#{TITLE} (#{VERSION})\n\
+  Replaces macOS system icons with user specified ones\n\
+  Usage: icon-replacer [args]"
+
+  parser.on("-s FILE", "--settings=FILE", "Specifies settings file to load") do |file|
+    settings_file = file
   end
 
-  def self.check_for_fileicon
+  parser.on("-v", "--version", "Show version") do
+    puts VERSION
+    exit
+  end
+
+  parser.on("-h", "--help", "Show help") do
+    puts parser
+    exit
+  end
+
+  parser.invalid_option do |flag|
+    STDERR.puts "ERROR: #{flag} is not a valid option."
+    STDERR.puts parser
+    exit(1)
+  end
+end
+
+class Exec
+  @settings_file = ""
+  @replacements = [] of Replacement
+
+  def initialize(settings_file)
+    @settings_file = settings_file
+  end
+
+  def check_for_fileicon
     unless Process.find_executable("fileicon")
       puts "fileicon not found!"
       puts "install fileicon from Homebrew?"
@@ -47,34 +67,66 @@ module Icon::Replacer
     end
   end
 
-  def self.exit_unless_file_exists(file)
+  def choose_file(path = HOME_DIR)
+    script = "'tell application (path to frontmost application as text)\n\
+  set myFile to choose file default location \"#{path}\"\n\
+  POSIX path of myFile\n\
+  end'"
+
+    `osascript -e #{script}`.chomp
+  end
+
+    def choose_new_file(name = "untitled.dat", path = HOME_DIR)
+      script = "'tell application (path to frontmost application as text)\n\
+  set myFile to choose file name default name \"#{name}\" default location \"#{path}\"\n\
+  POSIX path of myFile\n\
+  end'"
+
+      `osascript -e #{script}`.chomp
+    end
+
+  def load_settings
+    if @settings_file.empty?
+      puts "Load settings from a file?"
+      puts "type Y to load, anything else means N"
+
+      answer = gets
+
+      return if answer != "Y"
+
+      file = choose_file
+    else
+      exit_unless_file_exists(@settings_file)
+      file = @settings_file
+    end
+
+    @replacements = Array(Replacement).from_json(File.read(file))
+  end
+
+  def exit_unless_file_exists(file)
     unless File.exists?(file)
       puts "\"#{file}\"\ndoes not exist, exiting"
       exit
     end
   end
 
-  def self.prompt_for_replacement
+  def prompt_for_replacement
     puts "Which app file icon do you want to replace?"
-    puts "use full path, ex:"
-    puts "/Applications/Spotify.app"
 
-    app = gets || ""
+    app = choose_file("/Applications")
 
     exit_unless_file_exists(app)
 
     puts "Which icon do you want to use?"
-    puts "use full path, ex:"
-    puts "/Users/your-user/Pictures/icons/smiley.png"
 
-    icon = gets || ""
+    icon = choose_file
 
     exit_unless_file_exists(icon)
 
-    @@replacements << {app: app, icon: icon}
+    @replacements << {app: app, icon: icon}
   end
 
-  def self.prompt_for_more
+  def prompt_for_more
     puts "add another?"
     puts "type Y to continue, anything else means N"
 
@@ -86,13 +138,47 @@ module Icon::Replacer
     end
   end
 
-  def self.replace
-    puts "icons replaced"
+  def prompt_for_settings_save
+    return unless @settings_file.empty?
+
+    puts "save replacement settings?"
+    puts "type Y to continue, anything else means N"
+
+    answer = gets
+
+    if answer == "Y"
+      puts "Save to file:"
+      puts "ex:"
+      puts "/Users/your-user/icon-replacer-settings.dat"
+
+      file = choose_new_file("icon-replacer-settings.dat")
+
+      exit if file.empty?
+
+      File.write(file, @replacements.to_json)
+      puts "settings file saved to:\n#{file}"
+    end
   end
 
-  check_for_fileicon
-  load_settings
-  prompt_for_replacement
-  prompt_for_more
-  replace
+  def replace
+    @replacements.each do |replacement|
+      Process.run("fileicon", ["set", replacement[:app], replacement[:icon]])
+      puts "#{replacement[:app]} icon replaced"
+    end
+  end
+
+  def run
+    check_for_fileicon
+    load_settings
+
+    if @replacements.empty?
+      prompt_for_replacement
+      prompt_for_more
+      prompt_for_settings_save
+    end
+
+    replace
+  end
 end
+
+Exec.new(settings_file).run

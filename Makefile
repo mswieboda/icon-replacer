@@ -14,8 +14,10 @@ build_test:
 	${CC} ${SOURCE_FILES} -o ${OUT_FILE}_test --error-trace
 
 test: build_test
+	./${OUT_FILE}_test
 
 ${OUT_FILE}:
 	${CC} ${SOURCE_FILES} -o ${OUT_FILE} --release --no-debug
 
 release: clean ${OUT_FILE}
+	./${OUT_FILE}
