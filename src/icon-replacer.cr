@@ -69,21 +69,25 @@ class Exec
 
   def choose_file(path = HOME_DIR)
     script = "'tell application (path to frontmost application as text)\n\
-  set myFile to choose file default location \"#{path}\"\n\
-  POSIX path of myFile\n\
-  end'"
+set myFile to choose file default location \"#{path}\"\n\
+POSIX path of myFile\n\
+end'"
 
-    `osascript -e #{script}`.chomp
+    file = `osascript -e #{script}`.chomp
+    puts file
+    file
   end
 
-    def choose_new_file(name = "untitled.dat", path = HOME_DIR)
-      script = "'tell application (path to frontmost application as text)\n\
-  set myFile to choose file name default name \"#{name}\" default location \"#{path}\"\n\
-  POSIX path of myFile\n\
-  end'"
+  def choose_new_file(name = "untitled.dat", path = HOME_DIR)
+    script = "'tell application (path to frontmost application as text)\n\
+set myFile to choose file name default name \"#{name}\" default location \"#{path}\"\n\
+POSIX path of myFile\n\
+end'"
 
-      `osascript -e #{script}`.chomp
-    end
+    file = `osascript -e #{script}`.chomp
+    puts file
+    file
+  end
 
   def load_settings
     if @settings_file.empty?
