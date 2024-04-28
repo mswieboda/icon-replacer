@@ -1,0 +1,13 @@
+name: icon-replacer
+version: 0.1.0
+
+authors:
+  - Matt Swieboda <mswieboda@users.noreply.github.com>
+
+targets:
+  icon-replacer:
+    main: src/icon-replacer.cr
+
+crystal: '>= 1.12.1'
+
+license: MIT
